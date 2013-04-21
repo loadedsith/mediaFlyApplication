@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<link rel="stylesheet" type="text/css" href="stylesheet.css">
+
+		<script type="text/html" id="levelsTemplate">
+		
+			<ul class="level{{levelId}} {{id}}">
+				{{#items}}
+					{{>folderTemplate}}
+				{{/items}}
+			</ul>
+		</script>
+		
+		<script type="text/html" id="filesTemplate">
+			<div class="files {{id}}">
+				{{#items}}
+					{{>fileTemplate}}
+				{{/items}}
+			</div>
+		</script>
+		
+		<script type="text/html" id="folderTemplate">
+			<li class="name {{id}}">
+				<a href="#" onclick="javascript:console.log('mfly://item/{{id}}'); showByLevelAndId({{levelId}},'{{id}}');">{{name}}</a>
+			</li>
+		</script>
+		
+		<script type="text/html" id="fileTemplate">
+			<div class="file {{type}} ">
+				<a href="#" onclick="javascript:console.log('{{url}}');showByLevelAndId({{levelId}},'{{id}}');">
+				<img src="{{thumbnailUrl}}" style="background:url('./images/{{type}}.png') 50% 50% no-repeat;"/>
+					<p class="name">{{name}}</p>
+
+					<p class="description">{{description}}</p>
+				</a>
+			</div>
+		</script>
+	    
+		<script src="ICanHaz.min.js"></script>
+		<!--ICanHaz is a template engine, I considered using a pre-generated template script, but as the scripts are all local and wouldnt have to be downloaded, I decided to go with the full engine.//-->
+		<script type="text/javascript" src="jquery-1.8.2.min.js"></script>
+		<script type="text/javascript">
+			var areControlBarsOpen = false;
+			var rawJsonData;
+			var headerlessJsonData;
+			var activeLevel1Id;
+			var activeLevel2Id;
+			var activeIds=[];
+			var folders=[];
+			var files=[];
+			files["id"]=[];
+			var levelsDeep=0;//this is not a configuration variable, rather it tracks
+				 			//the recusion in finding the path that has been selected
+			$(document).ready(function () {
+                $.ajax({
+/*                    url      : 'http://static.mediafly.com.s3.amazonaws.com/hiring/data.json',*/
+                    url      : '../data.json',
+                    dataType : 'jsonp'
+					
+                });                    
+			});
+
+			function mflyInit (_array) {
+				rawJsonData =_array; 
+
+				_array.items.splice(0,1);
+				headerlessJsonData = _array;
+                // Render the hierarchy with the JSON that you received here.
+
+
+				//remove the header from the json list.
+				//TODO: Handle this dynamically
+				headerlessJsonData.levelId=0;
+				activeIds[0]=headerlessJsonData.items[0].id;
+				
+				sortIntoFilesAndFolders(headerlessJsonData);
+
+				showFoldersAndFiles();
+								console.log("after showFoldersAndFiles");		
+				for(var resetActiveCount = 0; resetActiveCount<activeIds.length;resetActiveCount++){
+					$(".level"+resetActiveCount+" ."+activeIds[resetActiveCount]).addClass("active");
+					
+					console.log("$("+".level"+resetActiveCount+" ."+activeIds[resetActiveCount] + ").addClass('active')");
+				}
+				
+			}
+
+			function sortIntoFilesAndFolders(item){
+				console.log(levelsDeep+": sortIntoFilesAndFolders");	
+				console.log(item);				
+				folders[levelsDeep]=[];
+				folders[levelsDeep]["items"]=[];
+				for(var i = 0; i <item.items.length ;i++){
+					sortItem = item.items[i];
+
+					if(sortItem.type=="folder"){
+						console.log("Found folder "+sortItem.name);
+						sortItem.levelId=levelsDeep;
+						folders[levelsDeep]["items"].push(sortItem);
+//						var itemsItems= sortItem.items;
+//						sortItem.items = [];//remove the items from the closed folders
+	
+						//console.log("folders["+levelsDeep+"].push("+sortItem.name+");");
+						for(var j = 0; j<activeIds.length;j++){
+							var activeId = activeIds[j];
+							$("."+activeId).addClass("active");
+
+							if(sortItem.id==activeId){
+
+								levelsDeep++;
+								console.log("sortItem");
+								console.log(sortItem);
+								
+								sortIntoFilesAndFolders(sortItem);
+								levelsDeep--;
+
+								if(j==activeIds.length-1){
+									//the top level folder's files only
+									console.log("activeIdItem");
+									console.log(sortItem);
+									files["id"]=activeId;
+									
+									loadFiles(sortItem);
+
+									
+								}
+
+							}
+							
+						}
+	
+						folders[levelsDeep]["id"]=item.id;
+						folders[levelsDeep]["levelId"]=levelsDeep;	
+						
+					}
+					
+				}
+				
+			}
+			function loadFiles(item){
+				
+				files["items"]=[];
+				console.log("loadFiles(item):");
+				console.log(item);
+				for(var i = 0; i<item.length;i++){
+					var fileOrFolder = item[i];
+					console.log("gettingFiles");
+					if(fileOrFolder.type != "folder"){
+						files["items"].push(fileOrFolder);
+						console.log("got "+fileOrFolder.name);
+					}
+				}
+			}
+			function showFoldersAndFiles(){
+
+				$(".files").remove();
+				console.log("folders");
+				console.log(folders);
+				for(var i = 0; i<folders.length;i++){
+
+					var folderTier = folders[i];
+					$(".level"+i).remove();
+
+					//console.log("showing foldersElements");
+					//console.log(foldersElements);
+					var foldersElements = ich.levelsTemplate(folderTier);
+
+					foldersElements["levelId"]=i;
+
+					$(".navigation").append(foldersElements);
+				}
+				console.log("files");
+				console.log(files);
+				if(files["items"].length>0){
+					
+					var filesElements = ich.filesTemplate(files);
+					console.log("showingFiles");
+					console.log(filesElements);
+					$(".navigation").append(filesElements);
+				}
+		}
+	
+		</script>
+	</head>
+
+	<body>
+		<div class="topBanner">
+		<a href="/Frontend%20Engineer%20Hiring%20Project%20-%202013/product/">
+			<img class="topBannerImg" src="./images/topBanner-1024w.png" alt="{{ description }}"/>
+			</a>
+		</div>
+		<div class="navigation">
+			
+		</div>
+	</body>
+</html>
