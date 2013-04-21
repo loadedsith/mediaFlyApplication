@@ -122,7 +122,7 @@
 									console.log(sortItem);
 									files["id"]=activeId;
 									
-									loadFiles(sortItem);
+									loadFiles(item.items[i]);
 
 									
 								}
@@ -144,8 +144,8 @@
 				files["items"]=[];
 				console.log("loadFiles(item):");
 				console.log(item);
-				for(var i = 0; i<item.length;i++){
-					var fileOrFolder = item[i];
+				for(var i = 0; i<item.items.length;i++){
+					var fileOrFolder = item.items[i];
 					console.log("gettingFiles");
 					if(fileOrFolder.type != "folder"){
 						files["items"].push(fileOrFolder);
