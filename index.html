@@ -23,7 +23,7 @@
 		
 		<script type="text/html" id="folderTemplate">
 			<li class="name {{id}}">
-				<a href="#" onclick="javascript:console.log('mfly://item/{{id}}'); showByLevelAndId({{levelId}},'{{id}}');">{{name}}</a>
+				<a href="#" onclick="javascript:console.log('mfly://item/{{id}}'); activateByLevelAndId({{levelId}},'{{id}}');">{{name}}</a>
 			</li>
 		</script>
 		
@@ -72,37 +72,41 @@
 
 				//remove the header from the json list.
 				//TODO: Handle this dynamically
-				headerlessJsonData.levelId=0;
-				activeIds[0]=headerlessJsonData.items[0].id;
+				headerlessJsonData.levelId = 0;
+				activeIds[0]= headerlessJsonData.items[0].id;
 				
+
+				refreshLayout();
+
+								
+				
+			}
+			function refreshLayout(){
 				sortIntoFilesAndFolders(headerlessJsonData);
 
 				showFoldersAndFiles();
-								console.log("after showFoldersAndFiles");		
+
+				resetActiveLabels();
+			}
+			function resetActiveLabels(){
 				for(var resetActiveCount = 0; resetActiveCount<activeIds.length;resetActiveCount++){
 					$(".level"+resetActiveCount+" ."+activeIds[resetActiveCount]).addClass("active");
-					
-					console.log("$("+".level"+resetActiveCount+" ."+activeIds[resetActiveCount] + ").addClass('active')");
 				}
-				
 			}
-
 			function sortIntoFilesAndFolders(item){
 				console.log(levelsDeep+": sortIntoFilesAndFolders");	
 				console.log(item);				
 				folders[levelsDeep]=[];
 				folders[levelsDeep]["items"]=[];
-				for(var i = 0; i <item.items.length ;i++){
-					sortItem = item.items[i];
+				if(item.items){
+				for(var itemIndex = 0; itemIndex <item.items.length ;itemIndex++){
+					sortItem = item.items[itemIndex];
 
 					if(sortItem.type=="folder"){
-						console.log("Found folder "+sortItem.name);
+						
 						sortItem.levelId=levelsDeep;
 						folders[levelsDeep]["items"].push(sortItem);
-//						var itemsItems= sortItem.items;
-//						sortItem.items = [];//remove the items from the closed folders
-	
-						//console.log("folders["+levelsDeep+"].push("+sortItem.name+");");
+
 						for(var j = 0; j<activeIds.length;j++){
 							var activeId = activeIds[j];
 							$("."+activeId).addClass("active");
@@ -110,8 +114,6 @@
 							if(sortItem.id==activeId){
 
 								levelsDeep++;
-								console.log("sortItem");
-								console.log(sortItem);
 								
 								sortIntoFilesAndFolders(sortItem);
 								levelsDeep--;
@@ -119,12 +121,11 @@
 								if(j==activeIds.length-1){
 									//the top level folder's files only
 									console.log("activeIdItem");
-									console.log(sortItem);
+									console.log(activeId);
 									files["id"]=activeId;
-									
-									loadFiles(item.items[i]);
 
-									
+									loadFiles(item.items[itemIndex]);
+
 								}
 
 							}
@@ -137,47 +138,50 @@
 					}
 					
 				}
+			}
 				
 			}
-			function loadFiles(item){
+			function loadFiles(inItem){
 				
 				files["items"]=[];
 				console.log("loadFiles(item):");
-				console.log(item);
-				for(var i = 0; i<item.items.length;i++){
-					var fileOrFolder = item.items[i];
-					console.log("gettingFiles");
-					if(fileOrFolder.type != "folder"){
-						files["items"].push(fileOrFolder);
-						console.log("got "+fileOrFolder.name);
+				console.log(inItem);
+				if(inItem.items!=null){
+					for(var i = 0; i<inItem.items.length;i++){
+						var fileOrFolder = inItem.items[i];
+						
+						if(fileOrFolder.type != "folder"){
+							files["items"].push(fileOrFolder);
+
+						}
 					}
 				}
+			}
+			function activateByLevelAndId(inLevel, inId){
+
+				activeIds.splice(inLevel+1,activeIds.length);
+
+				activeIds[inLevel]=inId;
+
+				refreshLayout();
 			}
 			function showFoldersAndFiles(){
 
 				$(".files").remove();
-				console.log("folders");
-				console.log(folders);
 				for(var i = 0; i<folders.length;i++){
 
 					var folderTier = folders[i];
 					$(".level"+i).remove();
 
-					//console.log("showing foldersElements");
-					//console.log(foldersElements);
 					var foldersElements = ich.levelsTemplate(folderTier);
 
 					foldersElements["levelId"]=i;
 
 					$(".navigation").append(foldersElements);
 				}
-				console.log("files");
-				console.log(files);
 				if(files["items"].length>0){
-					
+
 					var filesElements = ich.filesTemplate(files);
-					console.log("showingFiles");
-					console.log(filesElements);
 					$(".navigation").append(filesElements);
 				}
 		}
